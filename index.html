@@ -1,0 +1,160 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TUYẾN LẠNH — Cố vấn chuỗi lạnh dược phẩm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check-compat.js" defer></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="login-gate" id="login-gate">
+  <div class="login-gate-card">
+    <div class="brand-mark" style="margin:0 auto 18px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#04222b" stroke-width="2"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>
+    </div>
+    <h2 style="font-family:var(--font-display);text-align:center;margin:0 0 6px;">TUYẾN LẠNH</h2>
+    <p class="hint" style="text-align:center;margin-bottom:24px;">Đăng nhập bằng tài khoản được cấp để dùng chung dữ liệu với team.</p>
+    <div class="field"><label class="field-label">Email</label><input type="text" id="gate-email" placeholder="ten@congty.com"></div>
+    <div class="field"><label class="field-label">Mật khẩu</label><input type="password" id="gate-pass" placeholder="••••••••"></div>
+    <div id="gate-error" class="hint" style="color:var(--danger);display:none;margin-bottom:10px;"></div>
+    <button class="btn btn-primary btn-block" id="gate-submit">Đăng nhập</button>
+    <p class="hint" style="text-align:center;margin-top:16px;">Chưa có tài khoản? Liên hệ quản trị viên để được cấp.</p>
+  </div>
+</div>
+
+</div>
+
+<div class="topbar" id="app-topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#04222b" stroke-width="2"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>
+      </div>
+      <div class="brand-text">
+        <b>TUYẾN LẠNH</b>
+        <span id="sync-status" hidden></span>
+      </div>
+      <!-- Gộp email + đăng xuất + bảng bảo mật vào một nút tròn nhỏ cho gọn thanh
+           đầu trang; bấm vào mới mở bảng chi tiết. -->
+      <button id="admin-login-btn" class="icon-btn" title="Tài khoản">👤</button>
+    </div>
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" data-tab="lookup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        Tra cứu &amp; khuyến nghị
+      </button>
+      <button class="tab-btn" data-tab="upload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+        Tải lên dữ liệu
+      </button>
+      <button class="tab-btn" data-tab="library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+        Kho dữ liệu
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="app-wrap">
+
+  <!-- ================= LOOKUP TAB ================= -->
+  <div class="panel active" id="panel-lookup">
+    <h1 class="page-title">Tra cứu tuyến &amp; khuyến nghị container</h1>
+    <p class="page-sub">Chọn quốc gia đến, ngày đi/ngày đến và cảng trung chuyển (nếu có). Hệ thống sẽ tìm dữ liệu data logger thực tế bạn đã tải lên cho tuyến gần giống, đồng thời luôn ước tính thêm theo dữ liệu khí hậu lịch sử.</p>
+
+    <div class="card">
+      <div class="field">
+        <label class="field-label">Phương thức vận chuyển</label>
+        <div class="quick-presets" id="lk-mode-presets">
+          <button type="button" class="preset-btn active" data-mode="SEA">🚢 Đường biển (SEA)</button>
+          <button type="button" class="preset-btn" data-mode="AIR">✈ Đường hàng không (AIR)</button>
+          <button type="button" class="preset-btn" data-mode="LAND">🚛 Đường bộ (LAND)</button>
+        </div>
+        <div class="hint">Nhiệt độ trong container tàu biển, khoang hàng máy bay và thùng xe tải khác nhau nhiều — chọn đúng để ước tính chính xác hơn.</div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Cảng / nước đến</label>
+        <input type="text" id="lk-dest" list="lk-port-datalist" placeholder="Gõ tên cảng, sân bay hoặc quốc gia...">
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label">ETD (ngày đi)</label>
+          <input type="date" id="lk-etd">
+        </div>
+        <div class="field">
+          <label class="field-label">ETA (ngày đến)</label>
+          <input type="date" id="lk-eta">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Cảng trung chuyển (transit) — tuỳ chọn</label>
+        <div class="hint" style="margin-bottom:10px;">Thêm các cảng tàu ghé/chuyển tải giữa đường, VD Cái Mép trước khi qua Campuchia. Khu vực này thường là nơi container lưu bãi lâu, dễ bị nóng nhất. Để trống "Ngày thứ mấy" — app sẽ tự ước tính dựa theo khoảng cách địa lý thật (không cần biết chính xác lịch tàu).</div>
+        <div id="transit-list"></div>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-add-transit" style="margin-top:4px;">+ Thêm cảng trung chuyển</button>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btn-run-lookup">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        Tìm khuyến nghị
+      </button>
+    </div>
+
+    <div id="lookup-results"></div>
+  </div>
+
+  <!-- ================= UPLOAD TAB ================= -->
+  <div class="panel" id="panel-upload">
+    <h1 class="page-title">Tải lên dữ liệu data logger</h1>
+    <p class="page-sub">Tải file PDF xuất từ data logger (Tempaction OR / Shockactions...). Hệ thống tự đọc bảng nhiệt độ — bạn chỉ cần chọn nước đến và loại hình vận chuyển rồi lưu (cảng đi mặc định là Việt Nam). Dữ liệu được giữ trong trình duyệt này để dùng lại về sau.</p>
+
+    <div class="dropzone" id="dropzone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12m0-12l-4 4m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      <b>Kéo thả file PDF vào đây, hoặc bấm để chọn</b>
+      <span>Hỗ trợ nhiều file cùng lúc · chỉ .pdf</span>
+      <input type="file" id="file-input" accept="application/pdf" multiple style="display:none">
+    </div>
+
+    <div id="pending-list"></div>
+  </div>
+
+  <!-- ================= LIBRARY TAB ================= -->
+  <div class="panel" id="panel-library">
+    <h1 class="page-title">Kho dữ liệu đã lưu</h1>
+    <p class="page-sub">Toàn bộ lô data logger đã tải lên. Dữ liệu này được dùng làm căn cứ thực tế khi tra cứu khuyến nghị.</p>
+    <button class="btn btn-ghost btn-sm" id="btn-backup" style="margin-bottom:18px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Tải backup toàn bộ dữ liệu về máy
+    </button>
+    <button class="btn btn-ghost btn-sm" id="btn-rebuild-index" style="margin-bottom:18px;margin-left:8px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 22v-6h6"/><path d="M3.5 9a9 9 0 0114.9-3.4L21 8M20.5 15a9 9 0 01-14.9 3.4L3 16"/></svg>
+      Dựng lại danh sách
+    </button>
+    <div class="hint" style="margin:-8px 0 18px;">Dùng "Dựng lại danh sách" nếu bạn đã tải lô lên nhưng kho hiển thị trống — nó quét lại toàn bộ dữ liệu gốc và dựng lại mục lục. Không làm mất dữ liệu.</div>
+    <div id="library-list"></div>
+  </div>
+
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal" id="modal-content"></div>
+</div>
+<div class="toast" id="toast"></div>
+<datalist id="country-datalist"></datalist>
+<datalist id="lk-port-datalist"></datalist>
+
+<script src="data.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>

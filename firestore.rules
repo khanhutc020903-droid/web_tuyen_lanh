@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Kiểm tra xem người dùng có phải là Admin (dựa trên email)
+    // Thay đổi email nếu bạn muốn cấp quyền admin cho người khác
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == "expdocs2.cpc1hn@gmail.com";
+    }
+
+    // coldroute_meta: Lưu trữ danh sách thông tin cơ bản của các chuyến hàng
+    match /coldroute_meta/{docId} {
+      allow read: if true;
+      allow create: if true; // Ai cũng có thể tải PDF lên để tạo mới
+      allow update, delete: if isAdmin(); // Chỉ admin mới được sửa/xóa
+    }
+
+    // coldroute_shared: Chứa dữ liệu nhiệt độ chi tiết từng phút của chuyến hàng
+    match /coldroute_shared/{docId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+  }
+}
